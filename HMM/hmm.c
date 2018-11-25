@@ -23,6 +23,8 @@
 
 #include "hmm.h"
 
+void saveBToFile(double B[N][M]);
+
 int main(int argc, const char *argv[])
 {
     int maxIters,
@@ -44,13 +46,14 @@ int main(int argc, const char *argv[])
            Bbar[N][M];
            
     char fname[80];
+    int NumberOfModels = 1;
     
     struct stepStruct *step;
 
-    if(argc != 4)
+    if(argc != 5)
     {
-oops:   fprintf(stderr, "\nUsage: %s filename maxIters SizeOfT\n\n", argv[0]);
-        fprintf(stderr, "where filename == input file,  maxIters = number of Iterations and SizeOfT is the length of the observations sequence\n");
+oops:   fprintf(stderr, "\nUsage: %s filename maxIters SizeOfT NumberOfModels\n\n", argv[0]);
+        fprintf(stderr, "where filename == input file,  maxIters = number of Iterations, SizeOfT is the length of the observations sequence and Number of Models\n");
         exit(0);
     }
 
@@ -58,6 +61,7 @@ oops:   fprintf(stderr, "\nUsage: %s filename maxIters SizeOfT\n\n", argv[0]);
     strcpy(fname, argv[1]);
     maxIters = atoi(argv[2]);
     T = atoi(argv[3]);
+    NumberOfModels = atoi(argv[4]);
 
     ////////////////////////
     // read the data file //
@@ -94,125 +98,146 @@ oops:   fprintf(stderr, "\nUsage: %s filename maxIters SizeOfT\n\n", argv[0]);
     /////////////////////////
 
     srandom(seed);
+
+    int modelNumber = 0;
+
+    while (modelNumber < NumberOfModels){
     
-    // initialize pi[], A[][] and B[][]
-    initMatrices(pi, A, B, seed);
-    
-    // print pi[], A[][] and B[][] transpose
-    printf("\nN = %d, M = %d, T = %d\n", N, M, T);
-    printf("initial pi =\n");
-    printPi(pi);
-    printf("initial A =\n");
-    printA(A);
-    printf("initial B^T =\n");
-    printBT(B);
-
-    // initialization
-    iter = 0;
-    logProb = -1.0;
-    newLogProb = 0.0;
-
-    // main loop
-    while((iter < maxIters))
-    {
-        printf("\nbegin iteration = %d\n", iter);
-
-        logProb = newLogProb;
-
-        // alpha (or forward) pass
-        printf("alpha pass... ");
-        fflush(stdout);
-        alphaPass(step, pi, A, B, T);
-        printf("done\n");
+        // initialize pi[], A[][] and B[][]
+        initMatrices(pi, A, B, seed);
         
-        // beta (or backwards) pass
-        printf("beta pass... ");
-        fflush(stdout);
-        betaPass(step, pi, A, B, T);
-        printf("done\n");
-        
-        // compute gamma's and diGamma's
-        printf("compute gamma's and diGamma's... ");
-        fflush(stdout);
-        computeGammas(step, pi, A, B, T);
-        printf("done\n");
-        
-        // find piBar, reestimate of pi
-        printf("reestimate pi... ");
-        fflush(stdout);
-        reestimatePi(step, piBar);
-        printf("done\n");
-        
-        // find Abar, reestimate of A
-        printf("reestimate A... ");
-        fflush(stdout);
-        reestimateA(step, Abar, T);
-        printf("done\n");
-        
-        // find Bbar, reestimate of B
-        printf("reestimate B... ");
-        fflush(stdout);
-        reestimateB(step, Bbar, T);
-        printf("done\n");
-        
-#ifdef PRINT_REESTIMATES
-        printf("piBar =\n");
-        printPi(piBar);
-        printf("Abar =\n");
-        printA(Abar);
-        printf("Bbar^T = \n");
-        printBT(Bbar);
-#endif // PRINT_REESTIMATES
+        // print pi[], A[][] and B[][] transpose
+        printf("\nN = %d, M = %d, T = %d\n", N, M, T);
+        printf("initial pi =\n");
+        printPi(pi);
+        printf("initial A =\n");
+        printA(A);
+        printf("initial B^T =\n");
+        printBT(B);
 
-        // assign pi, A and B corresponding "bar" values
-        for(i = 0; i < N; ++i)
-        {
-            pi[i] = piBar[i];
-        
-            for(j = 0; j < N; ++j)
-            {
-                A[i][j] = Abar[i][j];
-            }
-
-            for(j = 0; j < M; ++j)
-            {
-                B[i][j] = Bbar[i][j];
-            }
-            
-        }// next i
-
-        // compute log [P(observations | lambda)], where lambda = (A,B,pi)
+        // initialization
+        iter = 0;
+        logProb = -1.0;
         newLogProb = 0.0;
-        for(i = 0; i < T; ++i)
+
+        // main loop
+        while((iter < maxIters))
         {
-            newLogProb += log(step[i].c);
-        }
-        newLogProb = -newLogProb;
+            printf("\nbegin iteration = %d\n", iter);
 
-        // a little trick so that no initial logProb is required
-        if(iter == 0)
-        {
-            logProb = newLogProb - 1.0;
-        }
+            logProb = newLogProb;
 
-        printf("completed iteration = %d, log [P(observation | lambda)] = %f\n", 
-                iter, newLogProb);
+            // alpha (or forward) pass
+            printf("alpha pass... ");
+            fflush(stdout);
+            alphaPass(step, pi, A, B, T);
+            printf("done\n");
+            
+            // beta (or backwards) pass
+            printf("beta pass... ");
+            fflush(stdout);
+            betaPass(step, pi, A, B, T);
+            printf("done\n");
+            
+            // compute gamma's and diGamma's
+            printf("compute gamma's and diGamma's... ");
+            fflush(stdout);
+            computeGammas(step, pi, A, B, T);
+            printf("done\n");
+            
+            // find piBar, reestimate of pi
+            printf("reestimate pi... ");
+            fflush(stdout);
+            reestimatePi(step, piBar);
+            printf("done\n");
+            
+            // find Abar, reestimate of A
+            printf("reestimate A... ");
+            fflush(stdout);
+            reestimateA(step, Abar, T);
+            printf("done\n");
+            
+            // find Bbar, reestimate of B
+            printf("reestimate B... ");
+            fflush(stdout);
+            reestimateB(step, Bbar, T);
+            printf("done\n");
+            
+    #ifdef PRINT_REESTIMATES
+            printf("piBar =\n");
+            printPi(piBar);
+            printf("Abar =\n");
+            printA(Abar);
+            printf("Bbar^T = \n");
+            printBT(Bbar);
+    #endif // PRINT_REESTIMATES
 
-        ++iter;
+            // assign pi, A and B corresponding "bar" values
+            for(i = 0; i < N; ++i)
+            {
+                pi[i] = piBar[i];
+            
+                for(j = 0; j < N; ++j)
+                {
+                    A[i][j] = Abar[i][j];
+                }
 
-    }// end while
-    
-    printf("\nT = %d, N = %d, M = %d, iterations = %d\n\n", T, N, M, iter);
-    printf("final pi =\n");
-    printPi(pi);
-    printf("\nfinal A =\n");
-    printA(A);
-    printf("\nfinal B^T =\n");
-    printBT(B);
-    printf("\nlog [P(observations | lambda)] = %f\n\n", newLogProb);
-    printf("\n\n Number of Iterations executed -> %d", iter);
+                for(j = 0; j < M; ++j)
+                {
+                    B[i][j] = Bbar[i][j];
+                }
+                
+            }// next i
+
+            // compute log [P(observations | lambda)], where lambda = (A,B,pi)
+            newLogProb = 0.0;
+            for(i = 0; i < T; ++i)
+            {
+                newLogProb += log(step[i].c);
+            }
+            newLogProb = -newLogProb;
+
+            // a little trick so that no initial logProb is required
+            if(iter == 0)
+            {
+                logProb = newLogProb - 1.0;
+            }
+
+            printf("completed iteration = %d, log [P(observation | lambda)] = %f\n", 
+                    iter, newLogProb);
+
+            ++iter;
+
+        }// end while
+        
+        printf("\nT = %d, N = %d, M = %d, iterations = %d\n\n", T, N, M, iter);
+        printf("final pi =\n");
+        printPi(pi);
+        printf("\nfinal A =\n");
+        printA(A);
+        printf("\nfinal B^T =\n");
+        printBT(B);
+        printf("\nlog [P(observations | lambda)] = %f\n\n", newLogProb);
+        printf("\n\n Number of Iterations executed -> %d", iter);
+
+        saveBToFile(B);
+
+        modelNumber++;
+    }
 }// end hmm
 
+
+void saveBToFile(double B[N][M]){
+    FILE *fp = fopen("BMatrix3.txt", "a");
+
+    for(int i = 0 ; i < M ; i++){
+        for (int j = 0 ; j < N ; j++){
+            fprintf(fp, "%f,", B[j][i]);
+        }
+        fprintf(fp, "%d\n", i);
+    }
+    fclose(fp);
+}
 
 //
 // alpha pass (or forward pass) including scaling
@@ -678,7 +703,7 @@ void printBT(double B[][M])
     
     for(i = 0; i < M; ++i)
     {
-        printf("%c ", alphabet[i]);
+        printf("%d ", i);
         for(j = 0; j < N; ++j)
         {
             printf("%8.5f ", B[j][i]);

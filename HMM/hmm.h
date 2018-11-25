@@ -5,7 +5,13 @@
 
 // pi[N], A[N][N] and B[N][M]
 #define N 3
-#define M 256
+
+// When we conside pair of bytes from the message
+// #define M 256
+
+// When we consider whole message at once
+#define M 257
+
 //#define M 26
 
 // character set
